@@ -1,0 +1,19 @@
+# /etc/systemd/system/camera-stream.service  (camera Pi)
+# Check which node is your camera first:  v4l2-ctl --list-devices
+[Unit]
+Description=USB camera MJPEG stream
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=<USER>
+WorkingDirectory=<MJPG_STREAMER_DIR>
+Environment=LD_LIBRARY_PATH=<MJPG_STREAMER_DIR>
+ExecStart=<MJPG_STREAMER_DIR>/mjpg_streamer \
+  -i "input_uvc.so -d /dev/video0 -r 640x480 -f 10 -q 50" \
+  -o "output_http.so -p 8080 -w <MJPG_STREAMER_DIR>/www"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

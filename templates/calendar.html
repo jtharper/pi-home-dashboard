@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800, initial-scale=1.0">
+<title>{{ dashboard_title }} - Calendar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0a0c0f;
+    --bg2:     #111318;
+    --bg3:     #181c22;
+    --border:  #1e2530;
+    --text:    #c8d0dc;
+    --muted:   #4a5568;
+    --accent:  #f0a500;
+    --blue:    #3b82f6;
+    --blue-dim:#1e3a5f;
+    --mono:    'IBM Plex Mono', monospace;
+    --sans:    'Inter', sans-serif;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .screen {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .page-title { font-size: 18px; font-weight: 600; color: #fff; }
+  .full-date  { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .clock { font-family: var(--mono); font-size: 20px; color: var(--muted); letter-spacing: 1px; }
+
+  .nav-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── 7-column week grid ── */
+  main {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .day-col {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .day-col.is-today { background: var(--bg2); }
+
+  .day-header {
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .day-col.is-today .day-header {
+    background: var(--bg3);
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .day-weekday {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+
+  .day-col.is-today .day-weekday { color: var(--accent); }
+
+  .day-num {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .day-month {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Events ── */
+  .events-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0;
+    scrollbar-width: none;
+  }
+  .events-list::-webkit-scrollbar { display: none; }
+
+  .event-item {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border);
+    border-left: 2px solid transparent;
+    transition: background 0.15s;
+  }
+  .event-item:last-child { border-bottom: none; }
+  .event-item:hover { background: var(--bg2); }
+
+  .event-item.timed { border-left-color: var(--blue); }
+  .event-item.allday { border-left-color: var(--accent); }
+  .event-item.soon {
+    background: var(--blue-dim);
+    border-left-color: var(--blue);
+  }
+
+  .event-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .event-item.soon .event-time { color: var(--blue); }
+
+  .event-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .event-item.soon .event-title { color: #fff; }
+
+  .no-events {
+    padding: 12px 8px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    opacity: 0.5;
+  }
+
+  /* ── Loading ── */
+  .loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 14px;
+    gap: 10px;
+    grid-column: 1 / -1;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .updated-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--blue);
+    margin-right: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <header>
+    <div class="header-left">
+      <div class="page-title">📅 This Week</div>
+      <div class="full-date" id="full-date"></div>
+    </div>
+    <div class="header-right">
+      <div style="font-size:11px; color:var(--muted)">
+        <span class="updated-dot"></span>
+        <span id="updated-label">Loading…</span>
+      </div>
+      <button class="nav-btn" onclick="window.location='/'">🏠 Home</button>
+      <button class="nav-btn" onclick="window.location='/camera'">📷 Camera</button>
+    </div>
+  </header>
+
+  <main id="main-grid">
+    <div class="loading-state"><div class="spinner"></div> Fetching calendar…</div>
+  </main>
+
+</div>
+
+<script>
+  const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('full-date').textContent =
+      `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
+  }
+  setInterval(updateClock, 60000);
+  updateClock();
+
+  function isSoon(timeSort) {
+    if (!timeSort || timeSort === '00:00') return false;
+    const now = new Date();
+    const [h, m] = timeSort.split(':').map(Number);
+    const eventMin = h * 60 + m;
+    const nowMin   = now.getHours() * 60 + now.getMinutes();
+    return eventMin >= nowMin && eventMin <= nowMin + 120;
+  }
+
+  async function fetchData() {
+    try {
+      const res  = await fetch('/api/calendar');
+      const data = await res.json();
+      const grid = document.getElementById('main-grid');
+
+      if (data.error && (!data.days || data.days.length === 0)) {
+        grid.innerHTML = `<div class="loading-state" style="color:var(--loss)">⚠ ${data.error}</div>`;
+        return;
+      }
+
+      function fmt12hr(timeStr) {
+        if (!timeStr) return '';
+        const [h24, m] = timeStr.split(':').map(Number);
+        const ampm = h24 >= 12 ? 'PM' : 'AM';
+        const h = h24 % 12 || 12;
+        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`;
+      }
+
+      document.getElementById('updated-label').textContent =
+        data.last_updated ? `Updated ${fmt12hr(data.last_updated)}` : 'Connecting…';
+
+      grid.innerHTML = (data.days || []).map((day, i) => {
+        const [yr, mo, dy] = day.date.split('-').map(Number);
+        const dateObj  = new Date(yr, mo - 1, dy);
+        const weekday  = DAYS[dateObj.getDay()];
+        const monthStr = MONTHS[dateObj.getMonth()];
+
+        const eventsHtml = day.events && day.events.length > 0
+          ? day.events.map(ev => {
+              const isAllDay = ev.time === 'All day';
+              const soon = !isAllDay && i === 0 && isSoon(ev.time_sort);
+              const cls  = soon ? 'soon' : isAllDay ? 'allday' : 'timed';
+              return `<div class="event-item ${cls}">
+                <div class="event-time">${ev.time}</div>
+                <div class="event-title">${ev.title}</div>
+              </div>`;
+            }).join('')
+          : `<div class="no-events">—</div>`;
+
+        return `<div class="day-col${i === 0 ? ' is-today' : ''}">
+          <div class="day-header">
+            <div class="day-weekday">${weekday.slice(0,3)}</div>
+            <div class="day-num">${dy}</div>
+            <div class="day-month">${monthStr}</div>
+          </div>
+          <div class="events-list">${eventsHtml}</div>
+        </div>`;
+      }).join('');
+
+    } catch(e) {
+      console.error('Calendar error:', e);
+    }
+  }
+
+  fetchData();
+  setInterval(fetchData, 60000);
+</script>
+</body>
+</html>

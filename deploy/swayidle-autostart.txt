@@ -1,0 +1,4 @@
+# Blank the DSI screen after 30 min idle on Raspberry Pi OS (Wayland / labwc).
+# Find your output name with:  wlr-randr
+# Add to ~/.config/labwc/autostart (replace DSI-2 if yours differs):
+swayidle -w timeout 1800 'wlr-randr --output DSI-2 --off' resume 'wlr-randr --output DSI-2 --on' &

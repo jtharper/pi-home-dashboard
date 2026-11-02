@@ -1,0 +1,21 @@
+# Secrets - never commit
+.env
+.env.*
+!.env.example
+client_secret*.json
+!client_secret.example.json
+token.pickle
+*.pickle
+cookies.txt
+*.pem
+*.key
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Misc
+*.zip
+.DS_Store

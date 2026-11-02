@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800, initial-scale=1.0">
+<title>{{ dashboard_title }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0a0c0f; --bg2:#111318; --bg3:#181c22; --border:#1e2530;
+    --text:#c8d0dc; --muted:#4a5568; --accent:#f0a500;
+    --gain:#22c55e; --loss:#ef4444; --blue:#3b82f6;
+    --mono:'IBM Plex Mono',monospace; --sans:'Inter',sans-serif;
+  }
+  html,body { width:100%; height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); overflow:hidden; cursor:none; user-select:none; }
+  .screen { display:grid; grid-template-rows:auto 1fr auto; height:100vh; gap:1px; background:var(--border); }
+  nav { background:var(--bg2); display:flex; align-items:center; justify-content:space-between; padding:8px 20px; gap:10px; }
+  .nav-title { font-size:13px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; }
+  .nav-buttons { display:flex; gap:8px; }
+  .nav-btn { background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:var(--sans); font-size:12px; padding:5px 12px; border-radius:6px; cursor:pointer; transition:border-color 0.2s,color 0.2s; white-space:nowrap; }
+  .nav-btn:hover,.nav-btn.active { border-color:var(--accent); color:var(--accent); }
+  main { display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:1px; background:var(--border); overflow:hidden; cursor:none; }
+  .card { background:var(--bg); display:flex; flex-direction:column; justify-content:center; padding:20px 24px; overflow:hidden; cursor:none; }
+  .card-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); margin-bottom:10px; }
+  .clock-card { grid-column:1; grid-row:1; align-items:flex-start; background:var(--bg2); }
+  .big-time { font-family:var(--mono); font-size:64px; font-weight:600; color:#fff; letter-spacing:-2px; line-height:1; }
+  .big-time .seconds { font-size:40px; color:var(--muted); }
+  .date-line { font-family:var(--sans); font-size:16px; font-weight:400; color:var(--muted); margin-top:8px; }
+  .weather-card { grid-column:2; grid-row:1; }
+  .weather-main { display:flex; align-items:center; gap:16px; margin-bottom:12px; }
+  .weather-icon { font-size:48px; line-height:1; }
+  .weather-temp { font-family:var(--mono); font-size:48px; font-weight:600; color:#fff; line-height:1; }
+  .weather-right { display:flex; flex-direction:column; gap:2px; }
+  .weather-desc { font-size:15px; font-weight:500; color:var(--text); text-transform:capitalize; }
+  .weather-location { font-size:12px; color:var(--muted); }
+  .weather-details { display:flex; gap:16px; margin-top:8px; }
+  .weather-detail { display:flex; flex-direction:column; gap:2px; }
+  .weather-detail-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); }
+  .weather-detail-val { font-family:var(--mono); font-size:14px; color:var(--text); }
+  .forecast { display:flex; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+  .forecast-day { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .forecast-day-name { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); }
+  .forecast-icon { font-size:18px; }
+  .forecast-temps { font-family:var(--mono); font-size:11px; color:var(--text); text-align:center; }
+  .forecast-temps .lo { color:var(--muted); }
+  .stats-card { grid-column:1; grid-row:2; padding:12px 16px; }
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 1px; background:var(--border); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .stats-col { background:var(--bg); padding:8px 10px; }
+  .stats-col-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--accent); margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+  .stat-row { display:flex; align-items:center; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border); }
+  .stat-row:last-child { border-bottom:none; }
+  .stat-name { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+  .stat-val { font-family:var(--mono); font-size:11px; color:var(--text); }
+  .stat-bar-wrap { display:flex; align-items:center; gap:5px; }
+  .stat-bar { width:40px; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .stat-bar-fill { height:100%; border-radius:2px; transition:width 1s ease; }
+  .fill-green { background:var(--gain); }
+  .fill-amber { background:var(--accent); }
+  .fill-red { background:var(--loss); }
+  .offline-badge { font-size:10px; color:var(--loss); font-family:var(--mono); }
+  .smarthome-card { grid-column:2; grid-row:2; overflow-y:auto; }
+  .device-list { display:flex; flex-direction:column; gap:8px; }
+  .device-row { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; transition:border-color 0.2s; }
+  .device-row.on { border-color:var(--accent); }
+  .device-info { display:flex; align-items:center; gap:10px; }
+  .device-icon { font-size:24px; line-height:1; }
+  .device-name { font-size:14px; font-weight:500; color:var(--text); }
+  .device-status { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
+  .device-status.on { color:var(--accent); }
+  .toggle-btn { width:48px; height:26px; border-radius:13px; border:none; background:var(--border); position:relative; cursor:pointer; transition:background 0.3s; flex-shrink:0; }
+  .toggle-btn.on { background:var(--accent); }
+  .toggle-knob { position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform 0.3s; }
+  .toggle-btn.on .toggle-knob { transform:translateX(22px); }
+  footer { background:var(--bg2); display:flex; align-items:center; justify-content:space-between; padding:5px 20px; font-size:11px; color:var(--muted); font-family:var(--mono); }
+  .status-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; }
+  .dot-green { background:var(--gain); }
+  .spinner { display:inline-block; width:10px; height:10px; border:1.5px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; margin-right:5px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .pulse { animation:pulse 2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <nav>
+    <div class="nav-title">&#127968; {{ dashboard_title }}</div>
+    <div class="nav-buttons">
+      <button class="nav-btn active">&#127968; Home</button>
+      <button class="nav-btn" onclick="window.location='/calendar'">&#128197; Calendar</button>
+      <button class="nav-btn" onclick="window.location='/camera'">&#128247; Camera</button>
+    </div>
+  </nav>
+  <main>
+    <div class="card clock-card">
+      <div class="card-label">Local time</div>
+      <div class="big-time">
+        <span id="hm">--:--</span><span class="seconds">:<span id="ss">--</span></span><span style="font-size:20px;color:var(--muted);margin-left:6px" id="ampm"></span>
+      </div>
+      <div class="date-line" id="date-line">Loading</div>
+    </div>
+    <div class="card weather-card">
+      <div class="card-label">{{ location_name }}</div>
+      <div id="weather-body"><div style="color:var(--muted);font-size:13px"><span class="spinner"></span>Fetching weather</div></div>
+    </div>
+    <div class="card stats-card">
+      <div class="card-label" style="margin-bottom:8px">System stats</div>
+      <div class="stats-grid">
+        <div class="stats-col">
+          <div class="stats-col-label">&#128421; Dashboard Pi</div>
+          <div id="dash-stats"><span class="spinner"></span></div>
+        </div>
+        <div class="stats-col">
+          <div class="stats-col-label">&#128247; Camera Pi</div>
+          <div id="camera-stats"><span class="spinner"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card smarthome-card">
+      <div class="card-label">&#128161; Smart home</div>
+      <div class="device-list">
+        <div class="device-row" id="bulb-row">
+          <div class="device-info">
+            <div class="device-icon">&#128161;</div>
+            <div>
+              <div class="device-name">{{ label_bulb }}</div>
+              <div class="device-status" id="bulb-status">Loading</div>
+            </div>
+          </div>
+          <button class="toggle-btn" id="bulb-toggle" onclick="toggleBulb()">
+            <div class="toggle-knob"></div>
+          </button>
+        </div>
+        <div class="device-row" id="plug-row">
+          <div class="device-info">
+            <div class="device-icon">&#128268;</div>
+            <div>
+              <div class="device-name">{{ label_plug }}</div>
+              <div class="device-status" id="plug-status">Loading</div>
+            </div>
+          </div>
+          <button class="toggle-btn" id="plug-toggle" onclick="togglePlug()">
+            <div class="toggle-knob"></div>
+          </button>
+        </div>
+        <div class="device-row" id="group-row">
+          <div class="device-info">
+            <div class="device-icon">&#127769;</div>
+            <div>
+              <div class="device-name">{{ label_group }}</div>
+              <div class="device-status" id="group-status">Loading</div>
+            </div>
+          </div>
+          <button class="toggle-btn" id="group-toggle" onclick="toggleGroup()">
+            <div class="toggle-knob"></div>
+          </button>
+        </div>
+        <div class="device-row" id="lamp-row">
+          <div class="device-info">
+            <div class="device-icon">&#128161;</div>
+            <div>
+              <div class="device-name">{{ label_lamp }}</div>
+              <div class="device-status" id="lamp-status">Loading</div>
+            </div>
+          </div>
+          <button class="toggle-btn" id="lamp-toggle" onclick="toggleLamp()">
+            <div class="toggle-knob"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <span><span class="status-dot dot-green pulse"></span>Dashboard Running</span>
+    <span id="footer-updated">Updating</span>
+    <span>{{ request.host }}</span>
+  </footer>
+</div>
+<script>
+  var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var SHORT_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function updateClock() {
+    var now = new Date();
+    var h = now.getHours();
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    document.getElementById('hm').textContent = String(h).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('ss').textContent = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('ampm').textContent = ampm;
+    document.getElementById('date-line').textContent = DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function weatherIcon(code) {
+    if (code === 0) return ['&#9728;&#65039;','Clear sky'];
+    if (code <= 2) return ['&#9925;','Partly cloudy'];
+    if (code === 3) return ['&#9729;&#65039;','Overcast'];
+    if (code <= 49) return ['&#127787;&#65039;','Foggy'];
+    if (code <= 59) return ['&#127782;','Drizzle'];
+    if (code <= 69) return ['&#127783;&#65039;','Rain'];
+    if (code <= 79) return ['&#10052;&#65039;','Snow'];
+    if (code <= 82) return ['&#127783;&#65039;','Rain showers'];
+    if (code <= 86) return ['&#127784;&#65039;','Snow showers'];
+    return ['&#9928;&#65039;','Thunderstorm'];
+  }
+
+  async function fetchWeather() {
+    try {
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude={{ weather_lat }}&longitude={{ weather_lon }}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit={{ temp_unit }}&wind_speed_unit={{ wind_unit }}&forecast_days=4&timezone={{ weather_tz | urlencode }}';
+      var res = await fetch(url);
+      var data = await res.json();
+      var c = data.current, d = data.daily;
+      var wi = weatherIcon(c.weather_code);
+      var icon = wi[0], desc = wi[1];
+      var forecastDays = [1,2,3].map(function(i) {
+        var date = new Date(d.time[i]+'T12:00:00');
+        var fi = weatherIcon(d.weather_code[i])[0];
+        return '<div class="forecast-day"><div class="forecast-day-name">' + SHORT_DAYS[date.getDay()] + '</div><div class="forecast-icon">' + fi + '</div><div class="forecast-temps">' + Math.round(d.temperature_2m_max[i]) + '&deg; <span class="lo">' + Math.round(d.temperature_2m_min[i]) + '&deg;</span></div></div>';
+      }).join('');
+      document.getElementById('weather-body').innerHTML = '<div class="weather-main"><div class="weather-icon">' + icon + '</div><div class="weather-right"><div class="weather-temp">' + Math.round(c.temperature_2m) + '&deg;{{ temp_symbol }}</div><div class="weather-desc">' + desc + '</div><div class="weather-location">Feels like ' + Math.round(c.apparent_temperature) + '&deg;{{ temp_symbol }}</div></div></div><div class="weather-details"><div class="weather-detail"><div class="weather-detail-label">Humidity</div><div class="weather-detail-val">' + c.relative_humidity_2m + '%</div></div><div class="weather-detail"><div class="weather-detail-label">Wind</div><div class="weather-detail-val">' + Math.round(c.wind_speed_10m) + ' {{ wind_label }}</div></div><div class="weather-detail"><div class="weather-detail-label">High / Low</div><div class="weather-detail-val">' + Math.round(d.temperature_2m_max[0]) + '&deg; / ' + Math.round(d.temperature_2m_min[0]) + '&deg;</div></div></div><div class="forecast">' + forecastDays + '</div>';
+    } catch(e) {
+      document.getElementById('weather-body').innerHTML = '<div style="color:var(--loss);font-size:13px">Weather unavailable</div>';
+    }
+  }
+
+  function barColor(pct) {
+    if (pct < 60) return 'fill-green';
+    if (pct < 80) return 'fill-amber';
+    return 'fill-red';
+  }
+
+  function renderStats(data, elementId) {
+    var tempColor = data.cpu_temp > 70 ? 'fill-red' : data.cpu_temp > 55 ? 'fill-amber' : 'fill-green';
+    var tempPct = Math.min(100, Math.round((data.cpu_temp / 85) * 100));
+    document.getElementById(elementId).innerHTML =
+      '<div class="stat-row"><span class="stat-name">🌡️ Temp</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill ' + tempColor + '" style="width:' + tempPct + '%"></div></div><span class="stat-val">' + data.cpu_temp + 'C</span></div></div>' +
+      '<div class="stat-row"><span class="stat-name">&#9889; CPU</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill ' + barColor(data.cpu_pct) + '" style="width:' + data.cpu_pct + '%"></div></div><span class="stat-val">' + data.cpu_pct + '%</span></div></div>' +
+      '<div class="stat-row"><span class="stat-name">&#129504; RAM</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill ' + barColor(data.mem_pct) + '" style="width:' + data.mem_pct + '%"></div></div><span class="stat-val">' + data.mem_pct + '%</span></div></div>' +
+      '<div class="stat-row"><span class="stat-name">&#128190; Disk</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill ' + barColor(data.disk_pct) + '" style="width:' + data.disk_pct + '%"></div></div><span class="stat-val">' + data.disk_pct + '%</span></div></div>' +
+      '<div class="stat-row"><span class="stat-name">&#9203;&#65039; Up</span><span class="stat-val">' + data.uptime + '</span></div>';
+  }
+
+  async function fetchDashStats() {
+    try { renderStats(await (await fetch('/api/stats')).json(), 'dash-stats'); }
+    catch(e) { document.getElementById('dash-stats').innerHTML = '<span class="offline-badge">offline</span>'; }
+  }
+
+  async function fetchCameraStats() {
+    try { renderStats(await (await fetch('{{ camera_stats_url }}')).json(), 'camera-stats'); }
+    catch(e) { document.getElementById('camera-stats').innerHTML = '<span class="offline-badge">offline</span>'; }
+  }
+
+  var toggling = false;
+
+  function updateDeviceUI(rowId, btnId, statusId, isOn) {
+    var btn = document.getElementById(btnId);
+    var status = document.getElementById(statusId);
+    var row = document.getElementById(rowId);
+    if (isOn) {
+      btn.classList.add('on');
+      row.classList.add('on');
+      status.textContent = 'On';
+      status.className = 'device-status on';
+    } else {
+      btn.classList.remove('on');
+      row.classList.remove('on');
+      status.textContent = 'Off';
+      status.className = 'device-status';
+    }
+  }
+
+  async function fetchSmarthome() {
+    try {
+      var res = await fetch('/api/smarthome/status');
+      var data = await res.json();
+      if (data.error) {
+        document.getElementById('bulb-status').textContent = 'Unavailable';
+        document.getElementById('plug-status').textContent = 'Unavailable';
+        document.getElementById('group-status').textContent = 'Unavailable';
+        document.getElementById('lamp-status').textContent = 'Unavailable';
+      } else {
+        updateDeviceUI('bulb-row', 'bulb-toggle', 'bulb-status', data.bulb);
+        updateDeviceUI('plug-row', 'plug-toggle', 'plug-status', data.plug);
+        updateDeviceUI('group-row', 'group-toggle', 'group-status', data.group);
+        updateDeviceUI('lamp-row', 'lamp-toggle', 'lamp-status', data.lamp);
+      }
+      document.getElementById('footer-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    } catch(e) {
+      document.getElementById('bulb-status').textContent = 'Unavailable';
+      document.getElementById('plug-status').textContent = 'Unavailable';
+      document.getElementById('group-status').textContent = 'Unavailable';
+      document.getElementById('lamp-status').textContent = 'Unavailable';
+    }
+  }
+
+  function toggleBulb() {
+    if (toggling) return;
+    toggling = true;
+    fetch('/api/smarthome/bulb/toggle', { method: 'POST' })
+      .then(function() { return fetchSmarthome(); })
+      .then(function() { toggling = false; })
+      .catch(function(e) { console.error(e); toggling = false; });
+  }
+
+  function togglePlug() {
+    if (toggling) return;
+    toggling = true;
+    fetch('/api/smarthome/plug/toggle', { method: 'POST' })
+      .then(function() { return fetchSmarthome(); })
+      .then(function() { toggling = false; })
+      .catch(function(e) { console.error(e); toggling = false; });
+  }
+
+  function toggleGroup() {
+    if (toggling) return;
+    toggling = true;
+    fetch('/api/smarthome/group/toggle', { method: 'POST' })
+      .then(function() { return fetchSmarthome(); })
+      .then(function() { toggling = false; })
+      .catch(function(e) { console.error(e); toggling = false; });
+  }
+
+  function toggleLamp() {
+    if (toggling) return;
+    toggling = true;
+    fetch('/api/smarthome/lamp/toggle', { method: 'POST' })
+      .then(function() { return fetchSmarthome(); })
+      .then(function() { toggling = false; })
+      .catch(function(e) { console.error(e); toggling = false; });
+  }
+
+  fetchWeather();
+  fetchDashStats();
+  fetchCameraStats();
+  fetchSmarthome();
+
+  setInterval(fetchWeather, 600000);
+  setInterval(fetchDashStats, 5000);
+  setInterval(fetchCameraStats, 5000);
+  setInterval(fetchSmarthome, 2000);
+</script>
+</body>
+</html>

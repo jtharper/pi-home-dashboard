@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800, initial-scale=1.0">
+<title>{{ dashboard_title }} - Cam</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:     #0a0c0f;
+    --bg2:    #111318;
+    --border: #1e2530;
+    --text:   #c8d0dc;
+    --muted:  #4a5568;
+    --accent: #f0a500;
+    --sans:   'Inter', sans-serif;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .screen {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .live-dot.online {
+    background: #22c55e;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .nav-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .nav-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Cam wrap ── */
+  .cam-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    overflow: hidden;
+  }
+
+  #stream {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* ── Error overlay (shown if stream fails) ── */
+  .error-overlay {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--muted);
+  }
+  .error-overlay.visible { display: block; }
+  .error-overlay .icon { font-size: 48px; margin-bottom: 12px; }
+  .error-overlay p { font-size: 13px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <header>
+    <div class="nav-title">
+      <div class="live-dot" id="live-dot"></div>
+      📷 Camera
+    </div>
+    <div class="nav-buttons">
+      <button class="nav-btn" onclick="window.location='/'">🏠 Home</button>
+      <button class="nav-btn" onclick="window.location='/calendar'">📅 Calendar</button>
+    </div>
+  </header>
+
+  <div class="cam-wrap">
+    <img id="stream"
+         src="{{ cam_stream_url }}"
+         alt="Camera stream">
+    <div class="error-overlay" id="error-overlay">
+      <div class="icon">📷</div>
+      <p>Stream unavailable<br>Make sure the camera Pi is running</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const stream = document.getElementById('stream');
+  const dot    = document.getElementById('live-dot');
+  const error  = document.getElementById('error-overlay');
+
+  stream.onload = () => {
+    dot.classList.add('online');
+    error.classList.remove('visible');
+  };
+
+  stream.onerror = () => {
+    dot.classList.remove('online');
+    error.classList.add('visible');
+  };
+</script>
+</body>
+</html>
